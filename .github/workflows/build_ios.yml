@@ -1,1 +1,45 @@
+name: Build My PS3 IPA
 
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-ios:
+    runs-on: macos-14
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Xcode Environment
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '15.4'
+
+    - name: Configure CMake
+      run: |
+        mkdir build
+        cd build
+        cmake .. -G Xcode \
+          -DCMAKE_SYSTEM_NAME=iOS \
+          -DCMAKE_OSX_SYSROOT=iphoneos \
+          -DCMAKE_OSX_ARCHITECTURES=arm64
+
+    - name: Compile App
+      run: |
+        cd build
+        xcodebuild -scheme My_PS3IOS -sdk iphoneos -configuration Release CODE_SIGNING_ALLOWED=NO
+
+    - name: Package to IPA
+      run: |
+        mkdir -p Payload
+        cp -r build/Release-iphoneos/My_PS3IOS.app Payload/
+        zip -r My_PS3.ipa Payload
+
+    - name: Upload IPA
+      uses: actions/upload-artifact@v4
+      with:
+        name: My_PS3-IPA
+        path: My_PS3.ipa
